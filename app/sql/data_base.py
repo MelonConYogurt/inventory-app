@@ -54,11 +54,13 @@ class data_base():
         try:
             with self.cursor as cursor:
                 query = ("SELECT * FROM products WHERE product_code = %s")
-                values = (code)
+                values = (code,)
                 cursor.execute(query, values)
                 if cursor.fetchall():
                     print("Product found")
-                return True
+                    return True
+                else:
+                    return False
             
         except mysql.connector.Error as err:
             with tracer.start_as_current_span("insert_product_error"):
@@ -69,8 +71,7 @@ class data_base():
                 else:
                     print(err)
         finally:
-            if self.connect.is_connected():
-                self.connect.close()
+            pass
         
     def insert_products(self, name: str, price: float, code: int, quantity: int, category: str | None, description: str | None):
         try:
@@ -83,6 +84,7 @@ class data_base():
                     query = ("INSERT INTO products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
                             "VALUES (%s, %s, %s, %s, %s, %s)")
                     values = (name, price, code, quantity, category, description)
+                    print(values)
                     with self.cursor as cursor:
                         cursor.execute(query, values)
                         self.connect.commit()
@@ -97,18 +99,17 @@ class data_base():
                 else:
                     print(err)
         finally:
-            if self.connect.is_connected():
-                self.connect.close()
+            pass
 
     
-    def fake_product_insert(self, quantity:int):
+    def fake_product_insert(self, fake_cicles:int):
         try:
-            for _ in range(quantity):
+            for _ in range(fake_cicles):
                 new_product = self.insert_products(
                     name=faker.name(),
                     price=faker.random_number(digits=2),
                     code=faker.random_number(digits=5),
-                    quantity=quantity,
+                    quantity= faker.random_number(digits=2),
                     category=faker.word(),
                     description=faker.sentence()
                 )
@@ -122,10 +123,9 @@ class data_base():
                 else:
                     print(err)
         finally:
-            if self.connect.is_connected():
-                self.connect.close()
+            pass
         
 
 if __name__ == "__main__":
-    data_base()
-    data_base.fake_product_insert(10)
+    db = data_base()
+    db.fake_product_insert(10)
