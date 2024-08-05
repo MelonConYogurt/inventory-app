@@ -65,12 +65,13 @@ class data_base():
             query = ("SELECT * FROM products WHERE product_code = %s")
             values = (code,)
             self.cursor.execute(query, values)
-            if self.cursor.fetchall():
-                print("Product found")
-                return True
+            product = self.cursor.fetchone()
+            if product:
+                print(f"Product found:\n {product}")
+                return True, product
             else:
                 print("Product not found")
-                return False
+                return False, None
         except mysql.connector.Error as err:
             with tracer.start_as_current_span("search_product_error"):
                 if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -83,7 +84,8 @@ class data_base():
     def insert_products(self, name: str, price: float, code: int, quantity: int, category: Optional[str], description: Optional[str]):
         try:
             with tracer.start_as_current_span("insert_product"):
-                if self.search_products(code):
+                verify_produt = self.search_products(code)
+                if verify_produt[0] == True:
                     print("Product already exists")
                     return
                 else:
@@ -106,7 +108,8 @@ class data_base():
         try:
             with tracer.start_as_current_span("delete_product"):
                 #Veriyfy the if product exist
-                if self.search_products(code) == False:
+                verify_produt = self.search_products(code)
+                if verify_produt[0] == False:
                     print("Product not found")
                     return
                 else:
@@ -134,21 +137,20 @@ class data_base():
                 else:
                     print(err)
                     
-                    
     def drop_product(self, code: int):
         try:
             with tracer.start_as_current_span("delete_product"):
                 #Veriyfy the if product exist
-                if self.search_products(code) == False:
+                verify_produt = self.search_products(code)
+                if verify_produt[0] == False:
                     print("Product not found")
                     return
                 else:
                     query=("DELETE FROM products WHERE product_code = %s")
                     values= (code,)
                     self.cursor.execute(query, values)
-                    current_drop = self.cursor.fetchone()
                     self.connect.commit()
-                    print(f"Procut eliminated:\n {current_drop}")
+                    print(f"Procut eliminated:\n {verify_produt[1]}")
         except mysql.connector.Error as err:
             with tracer.start_as_current_span("insert_product_error"):
                 if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -157,7 +159,26 @@ class data_base():
                     print("Database does not exist")
                 else:
                     print(err)
-        
+    
+    def sale_products(self):
+        try:
+            
+            
+            
+            pass
+    
+        except mysql.connector.Error as err:
+                with tracer.start_as_current_span("insert_product_error"):
+                    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                        print("Something is wrong with your user name or password")
+                    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                        print("Database does not exist")
+                    else:
+                         print(err)
+    
+    
+    
+       
     def fake_product_insert(self, fake_cycles: int):
         try:
             for _ in range(fake_cycles):
@@ -184,8 +205,27 @@ if __name__ == "__main__":
     db = data_base()
     try:
         # db.fake_product_insert(10)
-        db.drop_product(
-            code = 84109
-        )
+        # db.drop_product(
+        #     code = 42023
+        # )
+        
+        # db.insert_products(
+        #     name = "Randy Nelson",
+        #     price= 1561,
+        #     code=27947,
+        #     quantity= 5165,
+        #     category= "hola",
+        #     description= "adnfasd",
+        # )
+        
+        # valor_bool = db.search_products(
+        #     code = 27947
+        # )
+        
+        # print(valor_bool[0])
+        
+        
+        
+        pass
     finally:
         db.close()
