@@ -1,51 +1,8 @@
 import cv2 as cv
-import keyboard
 from pyzbar.pyzbar import decode
 
 def scanner():
-    capture = cv.VideoCapture(0)
-    if not capture.isOpened():
-        print("Cannot acces to the camera")
-        exit()
-    
-    while True:
-        ret, frame = capture.read()
-        if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
-            break
-        
-        decode_frame = decode(frame)
-        if not decode_frame:
-            pass
-        else:
-            for barcode in decode_frame:
-                if barcode.data != "":
-                    barcode_data = barcode.data
-                    print(barcode_data)
-                    return barcode_data
-            
-        cv.imshow("Scanner", frame)
-        
-        # Espera 1 milisegundo para ver si la tecla fue presionada
-        key = cv.waitKey(1)
-        
-        # Si la tecla es 'Esc' (código 27) o la tecla 'Esc' está presionada
-        if key == 27 or keyboard.is_pressed("esc"):
-            break
-    
-    capture.release()
-    cv.destroyAllWindows()
-    
-    
-if __name__ == "__main__":
-    scanner()
-
-
-
-import cv2 as cv
-from pyzbar.pyzbar import decode
-
-def scanner():
+    list_code = []
     capture = cv.VideoCapture(0)
     if not capture.isOpened():
         print("Cannot access the camera")
@@ -56,25 +13,33 @@ def scanner():
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        
-        decode_frame = decode(frame)
-        if decode_frame:
-            for barcode in decode_frame:
-                barcode_data = barcode.data.decode('utf-8')
-                if barcode_data:
-                    print(f"Barcode data: {barcode_data}")
-                    capture.release()
-                    cv.destroyAllWindows()
-                    return barcode_data
+        else:
+            decode_frame = decode(frame)
+            if decode_frame:
+                for barcode in decode_frame:
+                    
+                    # Obtener el recuadro delimitador del código de barras
+                    x, y, w, h = barcode.rect
+                    # Dibujar el recuadro alrededor del código de barras
+                    cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    
+                    
+                    barcode_data = barcode.data.decode('utf-8')
+                    if barcode_data:
+                        if barcode_data not in list_code:
+                            list_code.append(barcode_data)
+                        print(f"Barcode data: {barcode_data}")
             
         cv.imshow("Scanner", frame)
         
         # Espera 1 milisegundo para ver si la tecla 'Esc' fue presionada
         if cv.waitKey(1) & 0xFF == 27:  # 27 es el código ASCII para 'Esc'
-            break
-    
-    capture.release()
-    cv.destroyAllWindows()
+            capture.release()
+            cv.destroyAllWindows()
+            return list_code
 
 if __name__ == "__main__":
-    scanner()
+    scanned_codes = scanner()
+    print("Scanned barcodes:")
+    for code in scanned_codes:
+        print(code)
