@@ -14,8 +14,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as OracleMySQLInstrumentor
 
 #import de scaner module
-from scanner.scan_barcode import *
-from scanner.code_generator import *
+# from scanner.scan_barcode import *
+# from scanner.code_generator import *
 
 # Load environment variables
 dotenv_path = Path('app/.env')
