@@ -132,6 +132,7 @@ class data_base():
                         values = (quantity, code)
                         self.cursor.execute(query, values)
                         self.connect.commit()
+                        return True
         except mysql.connector.Error as err:
             with tracer.start_as_current_span("insert_product_error"):
                 if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -164,11 +165,46 @@ class data_base():
                 else:
                     print(err)
 
+    def sale(self):
+        try:
+            
+            
+            
+        except mysql.connector.Error as err:
+                with tracer.start_as_current_span("insert_product_error"):
+                    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                        print("Something is wrong with your user name or password")
+                    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                        print("Database does not exist")
+                    else:
+                         print(err)
+
+
     def sale_products(self):
         try:
-            product_list = scanner()
+            product_list = []
             for product in product_list:
-                self.search_products(product)
+                verify_product = self.search_products(product)
+                if verify_product[0] == True:
+                    product_data = {
+                    "product_id" : verify_product[1][0],
+                    "product_name" : verify_product[1][1],
+                    "product_price" : verify_product[1][2],
+                    "product_code" : verify_product[1][3]
+                    }
+                    verify_product_pre_sale = self.delete_products(code = product_data.product_code, quantity = 0 )
+                    
+                    if not verify_product_pre_sale:
+                        print(f"Not suficent stok for{product_data.product_name}")
+                        return False 
+                    else:
+                        query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale), (%s, %s, %s, %s)")
+                        values = ()
+                        self.cursor.execute()
+                        self.connect.commit()
+                        
+                        
+                    
         except mysql.connector.Error as err:
                 with tracer.start_as_current_span("insert_product_error"):
                     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
