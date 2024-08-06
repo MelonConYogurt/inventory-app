@@ -12,6 +12,12 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as OracleMySQLInstrumentor
 
+
+
+#import de scaner module
+from scanner.scan_barcode import *
+
+
 # Load environment variables
 dotenv_path = Path('app/.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -162,6 +168,10 @@ class data_base():
     
     def sale_products(self):
         try:
+            product_list = scanner()
+            for product in product_list:
+                query = ("")
+            
             
             
             

@@ -48,8 +48,8 @@ def scanner():
             return list_code
 
 if __name__ == "__main__":
-    scanned_codes = scanner()
-    print("Scanned barcodes:")
-    for code in scanned_codes:
-        print(code)
+    # scanned_codes = scanner()
+    # print("Scanned barcodes:")
+    # for code in scanned_codes:
+    #     print(code)
     pass
