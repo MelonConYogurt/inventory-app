@@ -8,7 +8,7 @@ def decoder(image):
 
     for obj in barcode:
         points = obj.polygon
-        (x,y,w,h) = obj.rect
+        (x,y,w,h) = obj.rectq
         pts = np.array(points, np.int32)
         pts = pts.reshape((-1, 1, 2))
         cv2.polylines(image, [pts], True, (0, 255, 0), 3)
