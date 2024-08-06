@@ -1,10 +1,10 @@
+import os
 from mysql.connector import errorcode
 from dotenv import load_dotenv
+from typing import Optional
 from pathlib import Path
 from faker import Faker
-import mysql.connector 
-import os
-from typing import Optional
+import mysql.connector
 
 # OpenTelemetry imports
 from opentelemetry import trace
@@ -12,10 +12,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as OracleMySQLInstrumentor
 
-
-
 #import de scaner module
-from scanner.scan_barcode import *
+# from app.scanner.scan_barcode import *
 
 
 # Load environment variables
@@ -35,7 +33,7 @@ OracleMySQLInstrumentor().instrument()
 faker = Faker()
 
 config = {
-    "host": os.getenv("HOST"), 
+    "host": os.getenv("HOST"),
     "port": os.getenv("PORT"),
     "user": os.getenv("USER"),
     "password": os.getenv("PASSWORD"),
@@ -109,7 +107,7 @@ class data_base():
                     print("Database does not exist")
                 else:
                     print(err)
-                    
+
     def delete_products(self, code: int, quantity:int):
         try:
             with tracer.start_as_current_span("delete_product"):
@@ -124,7 +122,7 @@ class data_base():
                     values= (code,)
                     self.cursor.execute(query_verificate_quantity, values)
                     current_quantity = self.cursor.fetchone()
-                    
+
                     if quantity > current_quantity[4]:
                         print(f"Insufficient quantity in stock\nThe stok for the product is: {current_quantity[4]}")
                         return False
@@ -142,7 +140,7 @@ class data_base():
                     print("Database does not exist")
                 else:
                     print(err)
-                    
+
     def drop_product(self, code: int):
         try:
             with tracer.start_as_current_span("delete_product"):
@@ -165,18 +163,12 @@ class data_base():
                     print("Database does not exist")
                 else:
                     print(err)
-    
+
     def sale_products(self):
         try:
             product_list = scanner()
             for product in product_list:
-                query = ("")
-            
-            
-            
-            
-            pass
-    
+                self.search_products(product)
         except mysql.connector.Error as err:
                 with tracer.start_as_current_span("insert_product_error"):
                     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -185,17 +177,17 @@ class data_base():
                         print("Database does not exist")
                     else:
                          print(err)
-    
-    
-    
-       
+
+
+
+
     def fake_product_insert(self, fake_cycles: int):
         try:
             for _ in range(fake_cycles):
                 self.insert_products(
                     name=faker.word(),
                     price=faker.random_number(digits=2),
-                    code=faker.random_number(digits=5),
+                    code= faker.ean13(),
                     quantity=faker.random_number(digits=2),
                     category=faker.word(),
                     description=faker.sentence(
@@ -210,15 +202,15 @@ class data_base():
                     print("Database does not exist")
                 else:
                     print(err)
-    
+
 if __name__ == "__main__":
     db = data_base()
     try:
-        # db.fake_product_insert(10)
+        db.fake_product_insert(10)
         # db.drop_product(
         #     code = 42023
         # )
-        
+
         # db.insert_products(
         #     name = "Randy Nelson",
         #     price= 1561,
@@ -227,15 +219,13 @@ if __name__ == "__main__":
         #     category= "hola",
         #     description= "adnfasd",
         # )
-        
+
         # valor_bool = db.search_products(
         #     code = 27947
         # )
-        
+
         # print(valor_bool[0])
-        
-        
-        
+
         pass
     finally:
         db.close()
