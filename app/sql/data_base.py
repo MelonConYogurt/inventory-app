@@ -1,4 +1,5 @@
 import os
+import datetime
 from mysql.connector import errorcode
 from dotenv import load_dotenv
 from typing import Optional
@@ -167,18 +168,32 @@ class data_base():
 
     def sale(self):
         try:
+            date = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            number = faker.random_number(5)
+            generate_code = f"{date}{number}"
             
+            sale_data = {
+                "sale_code": generate_code,
+                "sale_date": datetime.datetime.now().strftime("%d-%m-%Y"),  
+                "sale_total": 0
+            }
             
-            
+            query = "INSERT INTO sales (sale_code, sale_date, sale_total) VALUES (%s, %s, %s)"
+            values = (sale_data["sale_code"], sale_data["sale_date"], sale_data["sale_total"])  
+           
+            self.cursor.execute(query, values)
+            new_sale_id = self.cursor.lastrowid
+            self.connect.commit()
+            return new_sale_id
+        
         except mysql.connector.Error as err:
-                with tracer.start_as_current_span("insert_product_error"):
-                    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                        print("Something is wrong with your user name or password")
-                    elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                        print("Database does not exist")
-                    else:
-                         print(err)
-
+            with tracer.start_as_current_span("insert_product_error"):
+                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                    print("Something is wrong with your user name or password")
+                elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                    print("Database does not exist")
+                else:
+                    print(err)
 
     def sale_products(self):
         try:
@@ -192,19 +207,18 @@ class data_base():
                     "product_price" : verify_product[1][2],
                     "product_code" : verify_product[1][3]
                     }
-                    verify_product_pre_sale = self.delete_products(code = product_data.product_code, quantity = 0 )
+                    verify_product_pre_sale = self.delete_products(code = product_data["product_code"], quantity = 0 )
                     
                     if not verify_product_pre_sale:
-                        print(f"Not suficent stok for{product_data.product_name}")
+                        print(f"Not suficent stok for{product_data["product_name"]}")
                         return False 
                     else:
-                        query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale), (%s, %s, %s, %s)")
-                        values = ()
-                        self.cursor.execute()
+                        sale_id = self.sale()
+                        
+                        query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s)")
+                        values = (sale_id, product_data["product_id", 0, product_data["product_price"]])
+                        self.cursor.execute(query, values)
                         self.connect.commit()
-                        
-                        
-                    
         except mysql.connector.Error as err:
                 with tracer.start_as_current_span("insert_product_error"):
                     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -213,9 +227,6 @@ class data_base():
                         print("Database does not exist")
                     else:
                          print(err)
-
-
-
 
     def fake_product_insert(self, fake_cycles: int):
         try:
