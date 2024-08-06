@@ -1,6 +1,7 @@
 import cv2 as cv
 import winsound
 from pyzbar.pyzbar import decode
+import time
 
 def scanner():
     list_code = []
@@ -33,11 +34,11 @@ def scanner():
                     cv.putText(frame, show_text, (text_x, text_y), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 77, 0), 2)
                     
                     if barcode_data:
-                        if barcode_data not in list_code:
-                            list_code.append(barcode_data)
-                            winsound.Beep(1000, 500)
+                        list_code.append(barcode_data)  # Añadir el código a la lista sin comprobar si ya existe
+                        winsound.Beep(1000, 500)
                         print(f"Barcode data: {barcode_data}")
-                        
+                        time.sleep(3)  # Espera de 3 segundos después de añadir el código
+                    
         cv.namedWindow("Scanner", cv.WINDOW_NORMAL)
         cv.imshow("Scanner", frame)
         
@@ -48,9 +49,8 @@ def scanner():
             return list_code
 
 if __name__ == "__main__":
-    # scanned_codes = scanner()
-    # print("Scanned barcodes:")
-    # for code in scanned_codes:
-    #     print(code)
-    pass
+    scanned_codes = scanner()
+    print("Scanned barcodes:")
+    for code in scanned_codes:
+        print(code)
     

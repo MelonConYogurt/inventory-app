@@ -59,4 +59,5 @@ def generate_fake_barcodes(quantity: int):
 
 if __name__ == "__main__":
     # generate_fake_barcodes(1)
-    generate_qr(data = "https://github.com/MelonConYogurt")
+    # generate_qr(data = "https://github.com/MelonConYogurt")
+    pass

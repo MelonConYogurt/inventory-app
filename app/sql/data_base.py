@@ -14,8 +14,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as OracleMySQLInstrumentor
 
 #import de scaner module
-# from app.scanner.scan_barcode import *
-
+from scanner.scan_barcode import *
+from scanner.code_generator import *
 
 # Load environment variables
 dotenv_path = Path('app/.env')
@@ -171,6 +171,7 @@ class data_base():
             date = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             number = faker.random_number(5)
             generate_code = f"{date}{number}"
+            generate_qr(data = generate_code)
             
             sale_data = {
                 "sale_code": generate_code,
@@ -197,7 +198,7 @@ class data_base():
 
     def sale_products(self):
         try:
-            product_list = []
+            product_list = scanner()
             for product in product_list:
                 verify_product = self.search_products(product)
                 if verify_product[0] == True:
