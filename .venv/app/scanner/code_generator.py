@@ -13,7 +13,7 @@ faker = Faker()
 
 def generate_barcode_ean13(code: str) -> str:
     try:
-        directory = r"app/scanner/svg"
+        directory = r".venv\app\scanner\svg"
         if not os.path.exists(directory):
             os.makedirs(directory)
         
@@ -27,7 +27,7 @@ def generate_barcode_ean13(code: str) -> str:
 
 def generate_qr(data:any):
     try:
-        directory = r"app/scanner/img"
+        directory = r".venv\app\scanner\img"
         if not os.path.exists(directory):
             os.makedirs(directory)
         path = os.path.join(directory, f"qr-{faker.random_digit()}-{faker.random_letter()}.png")
