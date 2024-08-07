@@ -1,6 +1,7 @@
 import os
 import logging
 import qrcode
+import tempfile
 from faker import Faker
 from barcode import EAN13
 from barcode.writer import SVGWriter

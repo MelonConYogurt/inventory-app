@@ -8,7 +8,7 @@ class Scanner:
     def __init__(self) -> None:
         self.list_code = []
         self.capture = cv.VideoCapture(0)
-        self.flag = False  # Añadimos una bandera para controlar el almacenamiento
+        self.flag = False  # Added a flag to control the storage
     
     def recorder(self):
         if not self.capture.isOpened():
@@ -21,14 +21,14 @@ class Scanner:
                     print("Can't receive frame (stream end?). Exiting ...")
                     break
                 else:
-                    # Decodificamos cada frame para buscar los codigos de barra    
+                    # Decode each frame to look for barcodes    
                     self.decode_barcode(frame) 
                                             
                 cv.namedWindow("Scanner", cv.WINDOW_NORMAL)
                 cv.imshow("Scanner", frame)
                 
-                # Espera 1 milisegundo para ver si la tecla 'Esc' fue presionada
-                if cv.waitKey(1) & 0xFF == 27:  # 27 es el código ASCII para 'Esc'
+                # Wait 1 millisecond to see if the 'Esc' key was pressed
+                if cv.waitKey(1) & 0xFF == 27:  # 27 is the ASCII code for 'Esc'
                     self.capture.release()
                     cv.destroyAllWindows()
                     return self.list_code
@@ -39,29 +39,29 @@ class Scanner:
             for barcode in decode_frame:
                 barcode_data = barcode.data.decode('utf-8')
                 
-                # Obtener el recuadro delimitador del código de barras
+                # Get the bounding box of the barcode
                 x, y, w, h = barcode.rect
-                # Dibujar el recuadro alrededor del código de barras
+                # Draw the bounding box around the barcode
                 cv.rectangle(frame, (x, y), (x + w, y + h), (77, 97, 248), 2)
                 
                 show_text = f"Code: {barcode_data}"
-                # Ajustar la posición del texto para que no se solape con el recuadro
+                # Adjust the text position so it does not overlap with the bounding box
                 text_x = x
                 text_y = y - 10  
-                # Mostrar el codigo sobre el codigo de barras
+                # Display the code above the barcode
                 cv.putText(frame, show_text, (text_x, text_y), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 77, 0), 2)
                 
-                # Almacenamos cada uno de los códigos leídos
-                if not self.flag:  # Solo almacenamos si la bandera no está activada
+                # Store each of the read codes
+                if not self.flag:  # Only store if the flag is not activated
                     threading.Thread(target=self.local_storage, args=(barcode_data,)).start()
 
     def local_storage(self, data):
-        self.flag = True  # Activamos la bandera
-        self.list_code.append(data)  # Añadir el código a la lista
+        self.flag = True  # Activate the flag
+        self.list_code.append(data)  # Add the code to the list
         winsound.Beep(1000, 500)
         print(f"Barcode data: {data}")
-        time.sleep(3)  # Espera de 3 segundos después de añadir el código
-        self.flag = False  # Desactivamos la bandera después de 3 segundos
+        time.sleep(3)  # Wait for 3 seconds after adding the code
+        self.flag = False  # Deactivate the flag after 3 seconds
 
 if __name__ == "__main__":
     # scanner_instance = Scanner()

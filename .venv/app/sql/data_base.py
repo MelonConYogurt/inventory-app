@@ -198,8 +198,9 @@ class data_base():
                          
     def sale_products(self):
         try:
+            scanner_instance = Scanner()
             sale_id = self.sale()
-            product_list = scanner()
+            product_list = scanner_instance.recorder()
             for product in product_list:
                 verify_product = self.search_products(product)
                 if verify_product[0]:
