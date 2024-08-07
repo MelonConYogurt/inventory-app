@@ -14,8 +14,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as OracleMySQLInstrumentor
 
 #import de scaner module
-# from scanner.scan_barcode import *
-# from scanner.code_generator import *
+from app.scanner.scan_barcode import *
+from app.scanner.code_generator import *
 
 # Load environment variables
 dotenv_path = Path('app/.env')
@@ -198,7 +198,7 @@ class data_base():
 
     def sale_products(self):
         try:
-            product_list = scanner()
+            product_list =  scanner()
             for product in product_list:
                 verify_product = self.search_products(product)
                 if verify_product[0] == True:
@@ -215,11 +215,18 @@ class data_base():
                         return False 
                     else:
                         sale_id = self.sale()
+                        quantity = input(f"(Automatico: press 'Y') Unidades del producto: {product_data['product_name']}")
                         
-                        query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s)")
-                        values = (sale_id, product_data["product_id", 0, product_data["product_price"]])
-                        self.cursor.execute(query, values)
-                        self.connect.commit()
+                        if quantity > 0:
+                            query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s)")
+                            values = (sale_id, product_data["product_id", quantity, product_data["product_price"]])
+                            self.cursor.execute(query, values)
+                            self.connect.commit()
+                        else:
+                            query = ("INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s)")
+                            values = (sale_id, product_data["product_id", 1, product_data["product_price"]])
+                            self.cursor.execute(query, values)
+                            self.connect.commit()
         except mysql.connector.Error as err:
                 with tracer.start_as_current_span("insert_product_error"):
                     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -254,16 +261,16 @@ class data_base():
 if __name__ == "__main__":
     db = data_base()
     try:
-        db.fake_product_insert(10)
+        # db.fake_product_insert(10)
         # db.drop_product(
         #     code = 42023
         # )
 
         # db.insert_products(
-        #     name = "Randy Nelson",
-        #     price= 1561,
-        #     code=27947,
-        #     quantity= 5165,
+        #     name = "Mango con limon",
+        #     price= 134234,
+        #     code= 2807033817463,
+        #     quantity= 100,
         #     category= "hola",
         #     description= "adnfasd",
         # )
@@ -273,7 +280,8 @@ if __name__ == "__main__":
         # )
 
         # print(valor_bool[0])
-
+        db.sale_products()
         pass
     finally:
+        pass
         db.close()
