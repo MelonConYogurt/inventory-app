@@ -1,46 +1,30 @@
 import os
 import datetime
-from mysql.connector import errorcode
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from typing import Optional
-from pathlib import Path
 from faker import Faker
-import mysql.connector
 
 #import de scaner module
 from app.scanner.scan_barcode import *
 from app.scanner.code_generator import *
 
+
+from app.sql.config import load_config
+
 #pg database
 import psycopg2
 
-#Manage exceptions
-from psycopg2 import sql 
-from psycopg2 import errors
-
-# Load environment variables
-dotenv_path = Path('app/.env')
-load_dotenv(dotenv_path=dotenv_path)
-
-
 # Faker instance
 faker = Faker()
-
-config = {
-    "host": os.getenv("HOST"),
-    "port": os.getenv("PORT"),
-    "user": os.getenv("USER"),
-    "password": os.getenv("PASSWORD"),
-    "use_pure": True,
-    "database": os.getenv("DATABASE"),
-}
 
 class data_base:
     def __init__(self):
         self.connect = None
         self.cursor = None
+        self.config = load_config()
         try:
-            self.connect = psycopg2.connect(**config)
+            # self.connect = psycopg2.connect(**config)
+            self.connect = psycopg2.connect(**self.config)
             self.cursor = self.connect.cursor()
             print("Connected to the database")
         except psycopg2.DatabaseError as err:
@@ -56,7 +40,7 @@ class data_base:
 
     def search_products(self, code: int):
         try:
-            query = "SELECT * FROM products WHERE product_code = %s"
+            query = "SELECT * FROM main.products WHERE product_code = %s"
             values = (code,)
             self.cursor.execute(query, values)
             product = self.cursor.fetchone()
@@ -77,7 +61,7 @@ class data_base:
                 print("Product already exists")
                 return
             else:
-                query = ("INSERT INTO products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
+                query = ("INSERT INTO main.products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
                          "VALUES (%s, %s, %s, %s, %s, %s)")
                 values = (name, price, code, quantity, category, description)
                 self.cursor.execute(query, values)
@@ -185,15 +169,14 @@ class data_base:
             
     def fake_product_insert(self, fake_cycles: int):
         try:
-            fake = faker.Faker()
             for _ in range(fake_cycles):
                 self.insert_products(
-                    name=fake.word(),
-                    price=fake.random_number(digits=2),
-                    code=fake.ean13(),
-                    quantity=fake.random_number(digits=2),
-                    category=fake.word(),
-                    description=fake.sentence(nb_words=3, variable_nb_words=False)
+                    name=faker.word(),
+                    price=faker.random_number(digits=2),
+                    code=faker.ean13(),
+                    quantity=faker.random_number(digits=2),
+                    category=faker.word(),
+                    description=faker.sentence(nb_words=3, variable_nb_words=False)
                 )
         except psycopg2.Error as err:
             print(f"Error in fake_product_insert: {err}")
