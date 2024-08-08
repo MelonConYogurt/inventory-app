@@ -251,6 +251,13 @@ class data_base():
                 else:
                     print(err)
 
+    def main(variable: int):
+        try:
+            print (variable)           
+        except Exception as e:
+            print(e)
+    
+    
 if __name__ == "__main__":
     db = data_base()
     try:
