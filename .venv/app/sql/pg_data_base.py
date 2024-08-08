@@ -1,6 +1,5 @@
 import os
 import datetime
-import psycopg2
 from mysql.connector import errorcode
 from dotenv import load_dotenv
 from typing import Optional
@@ -18,18 +17,15 @@ from mysql.connector.opentelemetry.instrumentation import MySQLInstrumentor as O
 from app.scanner.scan_barcode import *
 from app.scanner.code_generator import *
 
+#pg database
+import psycopg2
+
+
 # Load environment variables
 dotenv_path = Path('app/.env')
 load_dotenv(dotenv_path=dotenv_path)
 
-# OpenTelemetry configuration
-provider = TracerProvider()
-processor = BatchSpanProcessor(ConsoleSpanExporter())
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)
-tracer = trace.get_tracer(__name__)
 
-OracleMySQLInstrumentor().instrument()
 
 # Faker instance
 faker = Faker()
@@ -48,14 +44,13 @@ class data_base():
         self.connect = None
         self.cursor = None
         try:
-            with tracer.start_as_current_span("database_connection"):
-                self.connect = psycopg2.connect(**config)
-                if self.connect.is_connected():
-                    self.cursor = self.connect.cursor()
-                    print("Connected to the database")
-                else:
-                    print("Failed to connect to the database")
-                    raise Exception("Database connection failed")
+            self.connect = mysql.connector.connect(**config)
+            if self.connect.is_connected():
+                self.cursor = self.connect.cursor()
+                print("Connected to the database")
+            else:
+                print("Failed to connect to the database")
+                raise Exception("Database connection failed")
         except Exception as e:
             print(f"Error connecting to the database: {e}")
             raise
@@ -79,93 +74,86 @@ class data_base():
                 print("Product not found")
                 return False, None
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("search_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
-                else:
-                    print(err)
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
     def insert_products(self, name: str, price: float, code: int, quantity: int, category: Optional[str], description: Optional[str]):
         try:
-            with tracer.start_as_current_span("insert_product"):
-                verify_produt = self.search_products(code)
-                if verify_produt[0] == True:
-                    print("Product already exists")
-                    return
-                else:
-                    query = ("INSERT INTO products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
-                             "VALUES (%s, %s, %s, %s, %s, %s)")
-                    values = (name, price, code, quantity, category, description)
-                    self.cursor.execute(query, values)
-                    self.connect.commit()
-                    print(f"Product {name} inserted successfully")
+            verify_produt = self.search_products(code)
+            if verify_produt[0] == True:
+                print("Product already exists")
+                return
+            else:
+                query = ("INSERT INTO products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
+                            "VALUES (%s, %s, %s, %s, %s, %s)")
+                values = (name, price, code, quantity, category, description)
+                self.cursor.execute(query, values)
+                self.connect.commit()
+                print(f"Product {name} inserted successfully")
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
-                else:
-                    print(err)
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
     def delete_products(self, code: int, quantity:int):
         try:
-            with tracer.start_as_current_span("delete_product"):
-                #Veriyfy the if product exist
-                verify_produt = self.search_products(code)
-                if verify_produt[0] == False:
-                    print("Product not found")
-                    return
-                else:
-                    #veruify if product quantity is suficent
-                    query_verificate_quantity =("SELECT * FROM products WHERE product_code = %s")
-                    values= (code,)
-                    self.cursor.execute(query_verificate_quantity, values)
-                    current_quantity = self.cursor.fetchone()
+            #Veriyfy the if product exist
+            verify_produt = self.search_products(code)
+            if verify_produt[0] == False:
+                print("Product not found")
+                return
+            else:
+                #veruify if product quantity is suficent
+                query_verificate_quantity =("SELECT * FROM products WHERE product_code = %s")
+                values= (code,)
+                self.cursor.execute(query_verificate_quantity, values)
+                current_quantity = self.cursor.fetchone()
 
-                    if quantity > current_quantity[4]:
-                        print(f"Insufficient quantity in stock\nThe stok for the product is: {current_quantity[4]}")
-                        return False
-                    else:
-                        #Update the product stock
-                        query =( "UPDATE products SET product_quantity = product_quantity - %s WHERE product_code = %s")
-                        values = (quantity, code)
-                        self.cursor.execute(query, values)
-                        self.connect.commit()
-                        return True
-        except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
+                if quantity > current_quantity[4]:
+                    print(f"Insufficient quantity in stock\nThe stok for the product is: {current_quantity[4]}")
+                    return False
                 else:
-                    print(err)
+                    #Update the product stock
+                    query =( "UPDATE products SET product_quantity = product_quantity - %s WHERE product_code = %s")
+                    values = (quantity, code)
+                    self.cursor.execute(query, values)
+                    self.connect.commit()
+                    return True
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
     def drop_product(self, code: int):
         try:
-            with tracer.start_as_current_span("delete_product"):
-                #Veriyfy the if product exist
-                verify_produt = self.search_products(code)
-                if verify_produt[0] == False:
-                    print("Product not found")
-                    return
-                else:
-                    query=("DELETE FROM products WHERE product_code = %s")
-                    values= (code,)
-                    self.cursor.execute(query, values)
-                    self.connect.commit()
-                    print(f"Procut eliminated:\n {verify_produt[1]}")
+            #Veriyfy the if product exist
+            verify_produt = self.search_products(code)
+            if verify_produt[0] == False:
+                print("Product not found")
+                return
+            else:
+                query=("DELETE FROM products WHERE product_code = %s")
+                values= (code,)
+                self.cursor.execute(query, values)
+                self.connect.commit()
+                print(f"Procut eliminated:\n {verify_produt[1]}")
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
-                else:
-                    print(err)
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
     def sale(self):
         try:
@@ -189,7 +177,6 @@ class data_base():
             return new_sale_id
         
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
                 if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
                     print("Something is wrong with your user name or password")
                 elif err.errno == errorcode.ER_BAD_DB_ERROR:
@@ -199,8 +186,9 @@ class data_base():
                          
     def sale_products(self):
         try:
+            scanner_instance = Scanner()
             sale_id = self.sale()
-            product_list = scanner()
+            product_list = scanner_instance.recorder()
             for product in product_list:
                 verify_product = self.search_products(product)
                 if verify_product[0]:
@@ -221,13 +209,12 @@ class data_base():
                     self.delete_products(code=product_data["product_code"], quantity=quantity)
                     
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
-                else:
-                    print(err)
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
     def fake_product_insert(self, fake_cycles: int):
         try:
@@ -243,21 +230,13 @@ class data_base():
                     )
                 )
         except mysql.connector.Error as err:
-            with tracer.start_as_current_span("insert_product_error"):
-                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                    print("Something is wrong with your user name or password")
-                elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                    print("Database does not exist")
-                else:
-                    print(err)
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
 
-    def main(variable: int):
-        try:
-            print (variable)           
-        except Exception as e:
-            print(e)
-    
-    
 if __name__ == "__main__":
     db = data_base()
     try:
@@ -265,7 +244,6 @@ if __name__ == "__main__":
         # db.drop_product(
         #     code = 42023
         # )
-
         # db.insert_products(
         #     name = "Mango con limon",
         #     price= 134234,
@@ -274,14 +252,11 @@ if __name__ == "__main__":
         #     category= "hola",
         #     description= "adnfasd",
         # )
-
         # valor_bool = db.search_products(
         #     code = 27947
         # )
-
         # print(valor_bool[0])
         db.sale_products()
         pass
     finally:
-        pass
         db.close()
