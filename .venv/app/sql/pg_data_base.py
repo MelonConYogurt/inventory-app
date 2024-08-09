@@ -61,12 +61,16 @@ class data_base:
                 print("Product already exists")
                 return
             else:
-                query = ("INSERT INTO main.products (product_name, product_price, product_code, product_quantity, product_category, product_description) "
-                         "VALUES (%s, %s, %s, %s, %s, %s)")
+                query = ("INSERT INTO main.products (product_name, product_price, product_code, product_quantity, product_category, product_description) VALUES (%s, %s, %s, %s, %s, %s) RETURNING * ")
                 values = (name, price, code, quantity, category, description)
+                
+                #Execute the query
                 self.cursor.execute(query, values)
+                
+                #Get the data insert
+                data_insert = self.cursor.fetchone()
                 self.connect.commit()
-                print(f"Product {name} inserted successfully")
+                print(f"Product {data_insert} inserted successfully")
         except psycopg2.Error as err:
             print(f"Error in insert_products: {err}")
             print("Exception TYPE:", type(err))
@@ -80,7 +84,7 @@ class data_base:
                 return
             else:
                 # Verify if product quantity is sufficient
-                query_verificate_quantity = "SELECT product_quantity FROM products WHERE product_code = %s"
+                query_verificate_quantity = "SELECT product_quantity FROM main.products WHERE product_code = %s"
                 values = (code,)
                 self.cursor.execute(query_verificate_quantity, values)
                 current_quantity = self.cursor.fetchone()
@@ -90,14 +94,14 @@ class data_base:
                     return False
                 else:
                     # Update the product stock
-                    query = "UPDATE products SET product_quantity = product_quantity - %s WHERE product_code = %s"
+                    query = "UPDATE main.products SET product_quantity = product_quantity - %s WHERE product_code = %s"
                     values = (quantity, code)
                     self.cursor.execute(query, values)
-                    self.connect.commit()
                     return True
         except psycopg2.Error as err:
             print(f"Error in delete_products: {err}")
             print("Exception TYPE:", type(err))
+            raise
             
     def drop_product(self, code: int):
         try:
@@ -107,11 +111,16 @@ class data_base:
                 print("Product not found")
                 return
             else:
-                query = "DELETE FROM products WHERE product_code = %s"
+                query = "DELETE FROM main.products WHERE product_code = %s RETURNING *"
                 values = (code,)
+                
+                #Execute the query
                 self.cursor.execute(query, values)
+                #Get the info of the delete item
+                delete_info = self.cursor.fetchone()
                 self.connect.commit()
-                print(f"Product eliminated:\n {verify_product[1]}")
+
+                print(f"Product eliminated:\n {delete_info}")
         except psycopg2.Error as err:
             print(f"Error in drop_product: {err}")
             print("Exception TYPE:", type(err))
@@ -119,9 +128,9 @@ class data_base:
     def sale(self):
         try:
             date = datetime.datetime.now().strftime('%Y%m%d')
-            number = faker.Faker().random_number(digits=5)
+            number = faker.random_number(digits=5)
             generate_code = f"{date}{number}"
-            # generate_qr(data = generate_code)  # Define esta función según tus necesidades
+            generate_qr(data = generate_code)  
             
             sale_data = {
                 "sale_code": generate_code,
@@ -129,23 +138,23 @@ class data_base:
                 "sale_total": 0
             }
             
-            query = "INSERT INTO sales (sale_code, sale_date, sale_total) VALUES (%s, %s, %s)"
+            query = "INSERT INTO main.sales (sale_code, sale_date, sale_total) VALUES (%s, %s, %s) RETURNING sale_id "
             values = (sale_data["sale_code"], sale_data["sale_date"], sale_data["sale_total"])  
            
             self.cursor.execute(query, values)
-            new_sale_id = self.cursor.fetchone()[0]  # Obtén el nuevo ID de venta
-            self.connect.commit()
-            return new_sale_id
+            sale_id = self.cursor.fetchone()[0]  # Obtén el nuevo ID de venta
+            return sale_id
         except psycopg2.Error as err:
             print(f"Error in sale: {err}")
             print("Exception TYPE:", type(err))
+            raise  
             
-                         
     def sale_products(self):
+        self.connect.autocommit = False
         try:
-            scanner_instance = Scanner()  # Define esta clase según tus necesidades
             sale_id = self.sale()
-            product_list = scanner_instance.recorder()  # Define este método según tus necesidades
+            scanner_instance = Scanner()  
+            product_list = scanner_instance.recorder()  
             for product in product_list:
                 verify_product = self.search_products(product)
                 if verify_product[0]:
@@ -158,14 +167,20 @@ class data_base:
                     # Default value
                     quantity = 1
                         
-                    query = "INSERT INTO sale_items (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s)"
+                    query = "INSERT INTO main.sale_products (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s) RETURNING *"
                     values = (sale_id, product_data["product_id"], quantity, product_data["product_price"])
                     self.cursor.execute(query, values)
-                    self.connect.commit()
+                    sale_item_data = self.cursor.fetchone()
+                    print(f"Sale product: {sale_item_data}")
                     self.delete_products(code=product_data["product_code"], quantity=quantity)
+           
+            self.connect.commit()            
         except psycopg2.Error as err:
             print(f"Error in sale_products: {err}")
             print("Exception TYPE:", type(err))
+            self.connect.rollback()
+        finally:
+            self.connect.autocommit = True
             
     def fake_product_insert(self, fake_cycles: int):
         try:
@@ -185,7 +200,7 @@ class data_base:
 if __name__ == "__main__":
     db = data_base()
     try:
-        db.fake_product_insert(10)
+        # db.fake_product_insert(10)
         # db.drop_product(
         #     code = 42023
         # )
@@ -201,7 +216,7 @@ if __name__ == "__main__":
         #     code = 27947
         # )
         # print(valor_bool[0])
-        # db.sale_products()
+        db.sale_products()
         pass
     finally:
         db.close()
