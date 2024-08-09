@@ -1,14 +1,11 @@
-import os
 import datetime
-from dotenv import load_dotenv, find_dotenv
-from typing import Optional
 from faker import Faker
 
 #import de scaner module
 from app.scanner.scan_barcode import *
 from app.scanner.code_generator import *
 
-
+#Load config for connection
 from app.sql.config import load_config
 
 #pg database
@@ -77,7 +74,7 @@ class data_base:
             print("Exception TYPE:", type(err))
             raise
 
-    def insert_products(self, name: str, price: float, code: int, quantity: int, category: Optional[str], description: Optional[str]):
+    def insert_products(self, name: str, price: float, code: int, quantity: int, category: str| None = None, description: str| None = None):
         try:
             verify_product = self.search_products(code)
             if verify_product[0]:
@@ -172,7 +169,14 @@ class data_base:
                         "product_code": verify_product[1][3],
                         "product_quantity": 1
                     }
-                        
+                    # user_input = input(f"Enter quantity for product {product_data['product_name']} (default is 1): ")
+                    # try:
+                    #     product_quantity = int(user_input) if user_input else 1
+                    # except ValueError:
+                    #     print("Invalid quantity input. Using default value of 1.")
+                    #     product_quantity = 1
+                    # product_data["product_quantity"] = product_quantity
+                            
                     query = "INSERT INTO main.sale_products (sale_id, product_id, quantity, product_price_at_sale) VALUES (%s, %s, %s, %s) RETURNING *"
                     values = (sale_id, product_data["product_id"], product_data["product_quantity"], product_data["product_price"])
                     self.cursor.execute(query, values)
@@ -188,7 +192,54 @@ class data_base:
             raise
         finally:
             self.connect.autocommit = True
+    
+    def update_product_data(self,
+                        name: str | None = None,
+                        price: float | None = None,
+                        code: int | None = None,
+                        quantity: int | None = None,
+                        category: str | None = None,
+                        description: str | None = None):
+        try:
+            product_data_in_db = self.search_products(code=code)
+            if not product_data_in_db:
+                print("Product not found.")
+                return
 
+            update_fields = []
+            update_values = []
+
+            if name is not None:
+                update_fields.append("product_name = %s")
+                update_values.append(name)
+            if price is not None:
+                update_fields.append("product_price = %s")
+                update_values.append(price)
+            if quantity is not None:
+                update_fields.append("product_quantity = %s")
+                update_values.append(quantity)
+            if category is not None:
+                update_fields.append("product_category = %s")
+                update_values.append(category)
+            if description is not None:
+                update_fields.append("product_description = %s")
+                update_values.append(description)
+            
+            if not update_fields:
+                print("No fields to update.")
+                return
+
+            update_values.append(code)
+            
+            query = f"UPDATE main.products SET {', '.join(update_fields)} WHERE product_code = %s RETURNING *"
+            self.cursor.execute(query, update_values)
+            product_update_data = self.cursor.fetchone()
+            self.connection.commit()
+            print(f"Product updated successfully: {product_update_data}")
+        
+        except psycopg2.Error as err:
+            print(f"Error in update_product_data: {err}")
+            print("Exception TYPE:", type(err))
             
     def fake_product_insert(self, fake_cycles: int):
         try:
@@ -213,12 +264,10 @@ if __name__ == "__main__":
         #     code = 42023
         # )
         # db.insert_products(
-        #     name = "Mango con limon",
-        #     price= 134234,
-        #     code= 2807033817463,
+        #     name = "Miel de abeja",
+        #     price= 10000,
+        #     code= 2980008614257,
         #     quantity= 100,
-        #     category= "hola",
-        #     description= "adnfasd",
         # )
         # valor_bool = db.search_products(
         #     code = 27947
